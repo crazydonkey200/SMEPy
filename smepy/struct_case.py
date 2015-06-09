@@ -155,11 +155,12 @@ class Entity:
         return '<' + self.name + '>'
     
 class Predicate:
-    """Short for predicate."""
-    def __init__(self, name, arity):
+    """ """
+    def __init__(self, name, arity, predicate_type='relation'):
         self.name = name
         self.arity = arity
-
+        self.predicate_type = predicate_type
+        
     @property
     def list_form(self):
         return self.name
