@@ -1,9 +1,27 @@
 import struct_case as sc
+import copy
+import reader
 
 class SME:
     """The main class that holds all
     the information of a structure mapping process."""
-    pass
+    def __init__(self, base, target):
+        self.base = base
+        self.target = target
+
+    def match(self):
+        matches = create_all_possible_matches(self.base, self.target)
+        #print matches
+        connect_matches(matches)
+        valid_matches = consistency_propagation(matches)
+        #print valid_matches
+        structural_evaluation(valid_matches)
+        kernel_mappings = find_kernel_mappings(valid_matches)
+        #for km in kernel_mappings:
+        #    print km
+        #    print
+        global_mappings = greedy_merge(kernel_mappings)
+        return global_mappings
 
 class Mapping:
     """ """
@@ -71,7 +89,12 @@ class Mapping:
         for match in self.matches:
             self.score += match.score
         return self.score
-    
+
+    def copy(self):
+        new_mapping = Mapping(self.matches)
+        new_mapping.score = self.score
+        return new_mapping
+
     def __str__(self):
         entity_matches = []
         expression_matches = []
@@ -129,16 +152,21 @@ class Params:
     pass
 
 def predicate_match_score(pred_1, pred_2):
-    if pred_1.name == pred_2.name:
-        if pred_1.predicate_type == 'relation':
-            return 0.0005
-        elif pred_1.predicate_type == 'function':
-            return 0.0002
+    if pred_1.predicate_type == 'relation':
+        if pred_1.name == pred_2.name:
+            return 0.005
+    elif pred_1.predicate_type == 'function':
+        return 0.002
     else:
         return 0.0
 
 def are_predicates_matchable(pred_1, pred_2):
-    return pred_1.name == pred_2.name    
+    if pred_1.predicate_type != pred_2.predicate_type:
+        return False
+    elif pred_1.predicate_type == 'relation':
+        return pred_1.name == pred_2.name
+    else:
+        return True
 
 def are_matchable(item_1, item_2):
     is_exp_1 = isinstance(item_1, sc.Expression)
@@ -194,9 +222,9 @@ def connect_matches(matches):
 def consistency_propagation(matches):
     match_graph = dict([(match, match.children) for match in matches])
     ordered_from_leaves_matches = topological_sort(match_graph)
-    # to be continued
+    
     for match in ordered_from_leaves_matches:
-        match.mapping = Mapping([match] + match.children)
+        match.mapping = Mapping([match])
         for child in match.children:
             if match.mapping.mutual_consistent(child.mapping):
                 match.mapping.merge(child.mapping)
@@ -208,7 +236,7 @@ def consistency_propagation(matches):
                               match.is_inconsistent))]
     return valid_matches
 
-def structural_evaluation(matches, trickle_down_factor=8):
+def structural_evaluation(matches, trickle_down_factor=16):
     #assume matches are still topologically sorted,
     #otherwise should sort it first
     for match in matches:
@@ -218,6 +246,8 @@ def structural_evaluation(matches, trickle_down_factor=8):
     for match in ordered_from_root_matches:
         for child in match.children:
             child.score += match.score * trickle_down_factor
+            if child.score > 1.0:
+                child.score = 1.0
     
     for match in ordered_from_root_matches:
         match.mapping.evaluate()
@@ -231,7 +261,34 @@ def find_kernel_mappings(valid_matches):
                              for parent in match.parents]
         if all(are_parents_valid):
             root_matches.append(match)
-    return [match.mapping for match in root_matches]
+    return [match.mapping.copy() for match in root_matches]
+
+def greedy_merge(kernel_mappings):
+    sorted_k_mapping_list = sorted(kernel_mappings,
+                                   key=(lambda mapping: mapping.score),
+                                   reverse=True)
+    global_mappings = []
+    max_score = 0.0
+    while (len(global_mappings) < 3) and \
+          (len(sorted_k_mapping_list) > 0):
+        global_mapping = sorted_k_mapping_list[0]
+        sorted_k_mapping_list.remove(global_mapping)
+        
+        for kernel_mapping in sorted_k_mapping_list[:]:
+            if global_mapping.mutual_consistent(kernel_mapping):
+                global_mapping.merge(kernel_mapping)
+                sorted_k_mapping_list.remove(kernel_mapping)
+        
+        score = global_mapping.evaluate()
+        if score <= 0.8 * max_score:
+            break
+        elif score > max_score:
+            max_score = score
+        global_mappings.append(global_mapping)
+    
+    global_mappings.sort(key=lambda mapping: mapping.score, \
+                         reverse=True)
+    return global_mappings
 
 def topological_sort(graph_dict):
     """Input: graph represented as
@@ -252,10 +309,24 @@ def topological_sort(graph_dict):
             print 'Cyclic graph!'
             return
     return sorted_list    
-    
+
 #test examples
 ms_1 = create_all_possible_matches(sc.water_flow, sc.heat_flow)
 connect_matches(ms_1)
 valid_ms = consistency_propagation(ms_1)
 structural_evaluation(valid_ms)
 kms = find_kernel_mappings(valid_ms)
+gms = greedy_merge(kms)
+
+name, facts = reader.read_meld_file('water_flow.meld')
+water_flow = sc.StructCase(facts, name)
+name, facts = reader.read_meld_file('heat_flow.meld')
+heat_flow = sc.StructCase(facts, name)
+
+print 'water flow vs heat flow:'
+sme_1 = SME(water_flow, heat_flow)
+gms = sme_1.match()
+for gm in gms:
+    print gm
+    print gm.score
+    print

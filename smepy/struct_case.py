@@ -8,11 +8,12 @@ def get_hash_name(item):
 
 class StructCase:
     """A case is a nugget containing entities and expressions."""
-    def __init__(self, s_exp_w_list):
+    def __init__(self, exp_info_list, name=None):
         self.items = {}
-        for s_exp_w in s_exp_w_list:
-            self.add_s_exp_w(s_exp_w)
+        for exp_info in exp_info_list:
+            self.add(exp_info)
         self.vocab = current_vocab
+        self.name = name
     
     @property
     def expression_list(self):
@@ -78,10 +79,12 @@ class StructCase:
             return item.name in self.items
         elif isinstance(item, list):
             return get_hash_name(item) in self.items
+        elif isinstance(item, tuple):
+            return get_hash_name(item[0]) in self.items
         else:
             return item in self.items
 
-    def __deepcopy__(self, memo):
+    def copy(self):
         return StructCase([(expression.list_form, expression.weight) \
                            for expression in self.expression_list])
         
@@ -97,8 +100,8 @@ class StructCase:
 class Expression:
     """Short for expression.
     A expression states a relation about some entities."""
-    def __init__(self, case, s_exp, weight=1.0, create_new_pred=True, \
-                 evidences=None):
+    def __init__(self, case, s_exp, weight=1.0, \
+                 create_new_pred=True, evidences=None):
         pred_name = s_exp[0]
         arg_list = s_exp[1:]
         num_of_args = len(arg_list)
@@ -113,6 +116,9 @@ class Expression:
         if current_vocab.check_arity(pred_name, num_of_args):
             for arg in arg_list:
                 self.args.append(case.add(arg))
+        else:
+            print 'Wrong arity for predicate', pred_name
+            raise ValueError
         self.weight = weight
         self.evidences = evidences
         self.case = case
@@ -159,7 +165,10 @@ class Predicate:
     def __init__(self, name, arity, predicate_type='relation'):
         self.name = name
         self.arity = arity
-        self.predicate_type = predicate_type
+        if name[-2:] == 'Fn':
+            self.predicate_type = 'function'
+        else:
+            self.predicate_type = predicate_type
         
     @property
     def list_form(self):
@@ -230,7 +239,7 @@ print v.check_arity('r1', 1)
 sc = StructCase([(['r1', 'e1', 'e2'], 2.0),
                  (['r2', 'e1', 'e2'], 3.0)])
 sc2 = copy.copy(sc)
-sc3 = copy.deepcopy(sc)
+sc3 = sc.copy()
 print sc3
 print sc3.items
 print sc2.items == sc.items
@@ -238,23 +247,24 @@ print sc3.items == sc.items
 print sc3['(r1 e1 e2)'].predicate == sc['(r1 e1 e2)'].predicate
 
 water_flow = StructCase( \
-    [(['greaterThan', 'bucket_1', 'bucket_2'], 2.0), \
-     (['flow', 'bucket_1', 'bucket_2', 'tube'], 3.0), \
-     (['greaterThan', 'bucket_2', 'bucket_1'], 2.0), \
+    [(['greaterThan', 'bucket_1', 'bucket_2'], 1.0), \
+     (['flow3', 'bucket_1', 'bucket_2', 'tube'], 1.0), \
+     (['greaterThan', 'bucket_2', 'bucket_1'], 1.0), \
      (['cause', \
        ['greaterThan', 'bucket_1', 'bucket_2'], \
-       ['flow', 'bucket_1', 'bucket_2', 'tube']], 1.0), \
+       ['flow3', 'bucket_1', 'bucket_2', 'tube']], 1.0), \
      (['cause', \
        ['greaterThan', 'bucket_2', 'bucket_1'], \
-       ['flow', 'bucket_1', 'bucket_2', 'tube']], 1.0)])
+       ['flow3', 'bucket_1', 'bucket_2', 'tube']], 1.0)])
 
 heat_flow = StructCase(
     [(['greaterThan', 'ball_1', 'ball_2'], 2.0), \
-     (['flow', 'ball_1', 'ball_2', 'stick'], 3.0), \
+     (['flow3', 'ball_1', 'ball_2', 'stick'], 3.0), \
      (['cause', \
        ['greaterThan', 'ball_1', 'ball_2'], \
-       ['flow', 'ball_1', 'ball_2', 'stick']], 1.0)])
-     # (['cause', \
-     #   ['greaterThan', 'ball_2', 'ball_1'], \
-     #   ['flow', 'ball_1', 'ball_2', 'stick']], 1.0)])
+       ['flow3', 'ball_1', 'ball_2', 'stick']], 1.0)])
+
+# (['cause', \
+#   ['greaterThan', 'ball_2', 'ball_1'], \
+#   ['flow', 'ball_1', 'ball_2', 'stick']], 1.0)])
 

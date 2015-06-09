@@ -1,0 +1,7 @@
+(in-microtheory heatFlowMt)
+(greaterThan (temperatureFn coffee) (temperatureFn ice-cube))
+(temperatureFn coffee)
+(temperatureFn ice-cube)
+(flow coffee ice-cube heat bar)
+(flat-top coffee)
+(liquid coffee)
