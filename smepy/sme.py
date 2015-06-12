@@ -2,7 +2,20 @@ import struct_case as sc
 import copy
 import reader
 
-class SME:
+class SME():
+    def __init__(self, config=None):
+        pass
+
+    def match(self, base, target,normalize=True):
+        internal_sme = _SME(base, target)
+        base_self_score = _SME(base, base).match()[0]
+        target_self_score = _SME(target, target).match()[0]
+        score, mapping = internal_sme.match()
+        if normalize:
+            score = 2*score/(base_self_score + target_self_score)
+        return (score, mapping)
+
+class _SME:
     """The main class that holds all
     the information of a structure mapping process."""
     def __init__(self, base, target):
@@ -21,7 +34,10 @@ class SME:
         #    print km
         #    print
         global_mappings = greedy_merge(kernel_mappings)
-        return global_mappings
+        if global_mappings:
+            return (global_mappings[0].score, global_mappings[0])
+        else:
+            return (0.0, None)
 
 class Mapping:
     """ """
@@ -323,10 +339,12 @@ water_flow = sc.StructCase(facts, name)
 name, facts = reader.read_meld_file('heat_flow.meld')
 heat_flow = sc.StructCase(facts, name)
 
-print 'water flow vs heat flow:'
-sme_1 = SME(water_flow, heat_flow)
-gms = sme_1.match()
-for gm in gms:
-    print gm
-    print gm.score
-    print
+#print 'water flow vs heat flow:'
+sme_1 = _SME(water_flow, heat_flow)
+score, gm = sme_1.match()
+#print score
+#print gm
+# for gm in gms:
+#     print gm
+#     print gm.score
+#     print

@@ -1,4 +1,5 @@
 import copy
+import reader
 
 def get_hash_name(item):
     if isinstance(item, list):
@@ -8,8 +9,14 @@ def get_hash_name(item):
 
 class StructCase:
     """A case is a nugget containing entities and expressions."""
-    def __init__(self, exp_info_list, name=None):
+    def __init__(self, exp_info_list=None, name=None, filename=None, \
+                 vocab=None):
         self.items = {}
+        if not exp_info_list:
+            if filename == None:
+                exp_info_list = []
+            else:
+                name, exp_info_list = reader.read_meld_file(filename)
         for exp_info in exp_info_list:
             self.add(exp_info)
         self.vocab = current_vocab
@@ -231,20 +238,20 @@ d = {t: 2}
 
 v = Vocabulary()
 v.add('r1', 2)
-print v['r1'].name
+#print v['r1'].name
 # v['r2']
-print v.check_arity('r1', 2)
-print v.check_arity('r1', 1)
+#print v.check_arity('r1', 2)
+#print v.check_arity('r1', 1)
 
 sc = StructCase([(['r1', 'e1', 'e2'], 2.0),
                  (['r2', 'e1', 'e2'], 3.0)])
 sc2 = copy.copy(sc)
 sc3 = sc.copy()
-print sc3
-print sc3.items
-print sc2.items == sc.items
-print sc3.items == sc.items
-print sc3['(r1 e1 e2)'].predicate == sc['(r1 e1 e2)'].predicate
+#print sc3
+#print sc3.items
+#print sc2.items == sc.items
+#print sc3.items == sc.items
+#print sc3['(r1 e1 e2)'].predicate == sc['(r1 e1 e2)'].predicate
 
 water_flow = StructCase( \
     [(['greaterThan', 'bucket_1', 'bucket_2'], 1.0), \
