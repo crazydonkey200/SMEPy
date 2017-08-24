@@ -309,24 +309,3 @@ def topological_sort(graph_dict):
             print 'Cyclic graph!'
             return
     return sorted_list    
-
-#test examples
-ms_1 = create_all_possible_matches(sc.water_flow, sc.heat_flow)
-connect_matches(ms_1)
-valid_ms = consistency_propagation(ms_1)
-structural_evaluation(valid_ms)
-kms = find_kernel_mappings(valid_ms)
-gms = greedy_merge(kms)
-
-name, facts = reader.read_meld_file('water_flow.meld')
-water_flow = sc.StructCase(facts, name)
-name, facts = reader.read_meld_file('heat_flow.meld')
-heat_flow = sc.StructCase(facts, name)
-
-print 'water flow vs heat flow:'
-sme_1 = SME(water_flow, heat_flow)
-gms = sme_1.match()
-for gm in gms:
-    print gm
-    print gm.score
-    print
