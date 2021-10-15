@@ -5,3 +5,5 @@
 (flow coffee ice-cube heat bar)
 (flat-top coffee)
 (liquid coffee)
+(cause (greaterThan (temperatureFn coffee) (temperatureFn ice-cube))
+       (flow coffee ice-cube heat bar))
